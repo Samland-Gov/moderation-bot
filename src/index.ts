@@ -15,18 +15,20 @@ webhooks.on('pull_request.labeled', async ({ id, name, payload }) => {
   const owner = payload.repository.owner.login
   const repoName = payload.repository.name
   const prNumber = payload.number
+  const headSHA = payload.pull_request.head.sha
 
   switch (payload.label?.name) {
     case 'vote-required':
       await githubApi.postComment(owner, repoName, prNumber,
         "Voting is required for this PR - a vote will be started when someone labels it `vote-start`."
       )
-
+      await githubApi.queueCheck(owner, repoName, 'Legislation Vote', headSHA)
       break
     case 'vote-start':
       await githubApi.postComment(owner, repoName, prNumber,
         "Vote started! Use 👍 / 👎 reactions to cast your vote. Voting will last 48 hours."
       )
+
       break
   }
 })
@@ -36,6 +38,7 @@ webhooks.on('pull_request.unlabeled', async ({ id, name, payload }) => {
   const owner = payload.repository.owner.login
   const repoName = payload.repository.name
   const prNumber = payload.number
+  const headSHA = payload.pull_request.head.sha
 
   switch (payload.label?.name) {
     case 'vote-start':
@@ -44,6 +47,7 @@ webhooks.on('pull_request.unlabeled', async ({ id, name, payload }) => {
       await githubApi.postComment(owner, repoName, prNumber,
         "Voting has been cancelled for this PR."
       )
+      await githubApi.completeAllChecks(owner, repoName, headSHA, "cancelled")
       break;
   }
 })
